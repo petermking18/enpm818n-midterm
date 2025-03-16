@@ -363,3 +363,15 @@ Resources:
       Cooldown: 60
       ScalingAdjustment: -1
 
+Outputs:
+  WebserverURL:
+    Description: The URL of the webserver
+    Value: !Sub http://${WebserverLoadBalancer.DNSName}
+    Export:
+      Name: WebserverURL
+  
+  BastionPublicIP:
+    Description: The public IP of the bastion instance, where you wil SSH to
+    Value: !GetAtt BastionInstance.PublicIp
+    Export:
+      Name: BastionPublicIP
