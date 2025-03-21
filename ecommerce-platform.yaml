@@ -5,12 +5,7 @@ Parameters:
   WebserverAMI:
     Description: The AMI imageId for the ec2 webserver. Should keep this as default.
     Type: AWS::EC2::Image::Id
-    Default: ami-06f16a227ebe7ec58
-
-  DatabaseStartpointSnapshot:
-    Description: The ARN for a snapshot of the database in its initial state. Should keep this as default.
-    Default: arn:aws:rds:us-east-1:481665084120:snapshot:midterm-rds-startpoint
-    Type: String
+    Default: ami-0be2b2603a2bd50a5
 
   DatabasePassword:
     Description: A strong password that will be used internally for the webserver to connect to the database.
@@ -167,8 +162,6 @@ Resources:
   # Private #
   ###########
 
-  # bigchanges
-
   # Networking
 
   PrivateSubnet1:
@@ -196,7 +189,6 @@ Resources:
   DatabaseInstance:
     Type: AWS::RDS::DBInstance
     Properties:
-      DBSnapshotIdentifier: !Ref DatabaseStartpointSnapshot
       DBInstanceClass: db.t3.micro
       AllocatedStorage: 20
       Engine: MySQL

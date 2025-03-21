@@ -3,9 +3,7 @@
 ### Prerequisites
 1. Make sure you have a keypair on your AWS account, for if you need to ssh into any of the servers.
 
-2. Provide Peter with your AWS Account ID so he can give you access to some resources required to start the stack
-    - `DatabaseStartpointSnapshot`: A snapshot of the database required for the project in its initial state. 
-    - `WebserverAMI`: An image of the webserver EC2 instance that will be the starting image for all scaling instances. Is pre-configured to serve the PHP website.
+2. Provide Peter with your AWS Account ID so he can give you access to an AMI image that is preconfigured to serve the ecommerce site. This is the `WebserverAMI` parameter.
 
 ### Running the Cloudformation template
 1. Make sure you're on `us-east-1` (N. Virginia)
@@ -15,7 +13,6 @@
     - `BastionAMI`: This can usually remain it's default. It's just the first Linux AMI on the free tier from AWS's AMI Catalog
     - `BastionKeyPair`: This should be the name of the keypair on your aws account from prerequisite 1. It will be the method of authentication should you ssh into the system.
     - `DatabasePassword`: Enter any strong password. You shouldn't need to use it unless you want to directly connect to the database for debugging purposes.
-    - `DatabaseStartpointSnapshot`: This should remain it's default. It's the snapshot Peter is sharing from his AWS account.
     - `WebserverAMI`: This should remain it's default. It's the AMI image Peter is sharing from his AWS account.
 3. Once the stack is up and running, look in the Outputs, and `WebserverURL` should be the location of the running website.
 
