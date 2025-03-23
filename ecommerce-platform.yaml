@@ -5,7 +5,7 @@ Parameters:
   WebserverAMI:
     Description: The AMI imageId for the ec2 webserver. Should keep this as default.
     Type: AWS::EC2::Image::Id
-    Default: ami-0be2b2603a2bd50a5
+    Default: ami-0a930671ea449149a
 
   DatabasePassword:
     Description: A strong password that will be used internally for the webserver to connect to the database.
