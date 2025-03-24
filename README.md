@@ -30,3 +30,18 @@ Once you're on the bastion, you can connect to the database from there, or ssh o
     - Make sure to use the `-A` flag as shown above, to use SSH agent forwarding
 2. Get the private IP address of the instance you want to go to. You can find it in the AWS Console by looking at the running CloudFormation stack, under resources look for `WebserverAutoScalingGroup`, go to that, then under that find Instance Management, and you can see the running instances. Click on one and copy it's private IP address.
 3. From the bastion, `ssh ubuntu@<instance-private-ip>`
+
+## https.yaml
+
+this is bare min one. i am trying to shift the the creds you pass to secrets maanger and then add that to userdata  script in instance. but this would also work.
+
+1. ensure you have ACM certificate generate and keep copy its arn  .
+`openssl genrsa 2048 > private-key.pem   ` 
+`
+openssl req -new -x509 -nodes -sha256 -days 365 \
+-key private-key.pem \
+-out certificate.pem \
+-subj "/CN=*.amazonaws.com"`
+
+2. also ensure the db password is more than 4-5 char long
+3. keep others 
