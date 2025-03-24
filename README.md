@@ -35,7 +35,7 @@ Once you're on the bastion, you can connect to the database from there, or ssh o
 
 this is bare min one. i am trying to shift the the creds you pass to secrets maanger and then add that to userdata  script in instance. but this would also work.
 
-1. ensure you have ACM certificate generate and keep copy its arn  .
+1. ensure you have ACM certificate generated in aws and keep copy of its arn  .
 `openssl genrsa 2048 > private-key.pem   ` 
 `
 openssl req -new -x509 -nodes -sha256 -days 365 \
