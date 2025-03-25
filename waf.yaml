@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Secure ALB with AWS WAF v2 including logging and metrics
+
+Parameters:
+  ALBArn:
+    Type: String
+    Description: ARN of the Application Load Balancer to associate with WAF
+
+  RateLimitRuleThreshold:
+    Type: Number
+    Default: 500
+    Description: Threshold for the rate limiting rule (requests per 5 minutes)
+
+Resources:
+  # WAF Web ACL Core Configuration
+  WAFWebACL:
+    Type: AWS::WAFv2::WebACL
+    Properties: 
+      DefaultAction: 
+        Allow: {}  # Default action for requests not matching any rule.
+      Name: EcommerceWAFACL
+      Scope: REGIONAL
+      VisibilityConfig: 
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: EcommerceWAFACLMetric
+      Rules:
+        # SQL Injection Protection
+        - Name: AWS-SQLi-Rule
+          Priority: 1
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesSQLiRuleSet
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: SQLi-Rule-Metrics
+
+        # XSS Protection
+        - Name: Custom-XSS-Rule
+          Priority: 2
+          Action:
+            Block: {}
+          Statement:
+            XssMatchStatement:
+              FieldToMatch:
+                Body: {}
+              TextTransformations:
+                - Priority: 0
+                  Type: URL_DECODE
+                - Priority: 1
+                  Type: HTML_ENTITY_DECODE
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: XSS-Rule-Metrics
+
+        # Rate Limiting Rule
+        - Name: Rate-Limit-Rule
+          Priority: 3
+          Action:
+            Block: {}
+          Statement:
+            RateBasedStatement:
+              Limit: !Ref RateLimitRuleThreshold
+              AggregateKeyType: IP
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: Rate-Limit-Metrics
+
+  # ALB Association
+  WAFALBAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    Properties:
+      ResourceArn: !Ref ALBArn
+      WebACLArn: !GetAtt WAFWebACL.Arn
+
+
+  WAFLoggingConfiguration:
+    Type: AWS::WAFv2::LoggingConfiguration
+    DependsOn: CloudWatchLogGroup  # Ensures that the Log Group is created first
+    Properties:
+      ResourceArn: !GetAtt WAFWebACL.Arn
+      LogDestinationConfigs:
+        - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:aws-waf-logs-ecommerce
+      
+
+   # CloudWatch Log Group for WAF Logs
+  CloudWatchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "aws-waf-logs-ecommerce"
+      RetentionInDays: 30  # Adjust retention as needed
+
+  # Metric Filter to capture WAF blocked requests
+  WAFBlockedRequestsMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    DependsOn: CloudWatchLogGroup
+    Properties:
+      LogGroupName: "aws-waf-logs-ecommerce"
+      FilterName : BlockedRequestLogFilter
+      FilterPattern: '{$.action = "BLOCK"}'  # Looks for 'BLOCK' in the logs
+      MetricTransformations:
+        - MetricValue: "1"
+          MetricNamespace: "Ecommerce/WAFV2"
+          MetricName: "BlockedRequests"
+
+Outputs:
+  WebACLArn:
+    Description: ARN of the created WAF Web ACL
+    Value: !GetAtt WAFWebACL.Arn
+  LogGroupName:
+    Description: Name of the CloudWatch Log Group for WAF logs
+    Value: !Ref CloudWatchLogGroup
