@@ -1,5 +1,8 @@
 # ENPM 818N Midterm
 
+### note pls use final.yaml for base setup from now onwards same.
+First deploy final.yaml. Afer it is deployed you can deploy waf.yaml.
+
 ### Prerequisites
 1. Make sure you have a keypair on your AWS account, for if you need to ssh into any of the servers.
 
@@ -44,4 +47,4 @@ openssl req -new -x509 -nodes -sha256 -days 365 \
 -subj "/CN=*.amazonaws.com"`
 
 2. also ensure the db password is more than 4-5 char long
-3. keep others 
+3. keep others without change
