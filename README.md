@@ -1,6 +1,6 @@
 # ENPM 818N Midterm
 
-### note pls use final.yaml for base setup from now onwards same.
+### note pls use final.yaml for base setup from now onwards same. ( You still have to generate you own certificate  ( the same steps for https.yaml , check end of readme.)
 First deploy final.yaml. Afer it is deployed you can deploy waf.yaml.
 
 ### Prerequisites
