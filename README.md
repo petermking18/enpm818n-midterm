@@ -1,8 +1,16 @@
 # ENPM 818N Midterm
 
+## -- New instructions---
+Ensure you first have the ami image shared to your aws account , otherwise cft would fail. ( put your aws id in group)
+
 ### note pls use final.yaml for base setup from now onwards same. ( You still have to generate you own certificate  ( the same steps for https.yaml , check end of readme.)
 First deploy final.yaml. Afer it is deployed you can deploy waf.yaml.
 
+For Phase 4, dm in the group or you maybe blocked.
+ because the self generated cert key would have https:// but then due to the not secure thing , it might interrupt with the stress test. The workaround for that is that  1. Go to ACM and request a certificate. Later, send me the cname so that i can add that my domain host provider. Once that certificate is valid. 2. you have to tell me the A names of loadbalancer which was deployed and I would add that to the DNS settings of my custom domain. which would be https://customdomain_i_own . 3. Now for stress testing you can put this https://url and it should work fine. 
+If this doesn't work we need to remove the https listener for LB and just have an http:// endpoint for stress testing
+ 
+##  -- New instructions---
 ### Prerequisites
 1. Make sure you have a keypair on your AWS account, for if you need to ssh into any of the servers.
 
