@@ -1,0 +1,220 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create a CloudWatch Dashboard and Alarms for an enhanced e-commerce infrastructure.
+
+Parameters:
+  AutoScalingGroupName:
+    Type: String
+    Description: Name of the Auto Scaling Group
+
+  ALBAppName:
+    Type: String
+    Description: App Name of the Application Load Balancer (In ARN, copy everything after app/)
+
+  
+  WAFWebACLName:
+    Type: String
+    Description: Name of the WAF Web ACL
+ 
+
+  BlockedRequestAlarmThreshold:
+    Type: Number
+    Default: 20
+    Description: Threshold for the cloud alarm to trigger an action for blocked request.
+
+  AllowedRequestAlarmThreshold:
+    Type: Number
+    Default: 250
+    Description: Threshold for the cloud alarm to trigger an action for blocked request.
+
+  SNSEmail:
+    Type: String
+    Description: Email address to send alarm notification
+
+Resources:
+  
+  AlarmSNSTopic:
+    Description: Cloudwatch would trigger alarms here
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: EcommerceApplicationAlarmNotification
+
+
+  AlarmEmailSubscription:
+    Type: AWS::SNS::Subscription
+    DependsOn: AlarmSNSTopic
+    Properties:  
+      TopicArn: !Ref AlarmSNSTopic
+      Protocol: email 
+      Endpoint: !Ref SNSEmail
+
+  # CloudWatch Dashboard
+  MidtermDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: MidtermDashboard
+      DashboardBody: 
+        Fn::Sub: |
+          {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [                  
+                  [ "AWS/AutoScaling", "GroupInServiceInstances", "AutoScalingGroupName", "${AutoScalingGroupName}" ],
+                  [ ".", "GroupDesiredCapacity", ".", "." ],
+                  [ ".", "GroupPendingInstances", ".", "." ],
+                  [ ".", "GroupTerminatingInstances", ".", "." ],
+                  [ "AWS/EC2", "CPUUtilization", ".", "." ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "us-east-1",
+                "title": "EC2 Auto Scaling - Instance Count & CPU Utilization"
+              }
+            },        
+              {
+                "type": "metric",
+                "x": 12,
+                "y": 0,
+                "width": 12,
+                "height": 6,
+                "properties": {
+                  "metrics": [
+                      [ "AWS/ApplicationELB", "RequestCount", "LoadBalancer", "${ALBAppName}" ],
+                      [ ".", "HTTPCode_Target_4XX_Count", ".", "." ],
+                      [ ".", "TargetResponseTime", ".", "." ],
+                      [ ".", "PeakLCUs", ".", "." ],
+                      [ ".", "ConsumedLCUs", ".", "." ],
+                      [ ".", "HTTPCode_Target_5XX_Count", ".", "." ]
+                      
+                  ],
+                  "view": "timeSeries",
+                  "stacked": false,
+                  "region": "us-east-1",
+                  "title": "ALB - Request Count, Errors & Latency"
+                }
+              },             
+              {
+                "type": "metric",
+                "x": 0,
+                "y": 6,
+                "width": 12,
+                "height": 6,
+                "properties": {
+                  "metrics": [
+                    [ "AWS/WAFV2", "AllowedRequests", "WebACL", "${WAFWebACLName}", "Device", "Mobile", "Region", "us-east-1" ],
+                    [ "...", "Desktop", ".", "." ],
+                    [ "...", "Tablet", ".", "." ],
+                    [ ".", "BlockedRequests", ".", ".", "Region", "us-east-1", "Rule", "ALL" ],
+                    [ ".", "AllowedRequests", ".", ".", ".", ".", ".", "." ]
+                  ],
+                  "view": "timeSeries",
+                  "stacked": false,
+                  "region": "us-east-1",
+                  "title": "WAF - Requests (Blocked, Allowed & Sampled)"
+                }
+              }
+              
+            ]
+          }
+
+
+      
+ 
+  # High 4XX Error Rate Alarm for ALB
+  HighALB4xxErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "High-ALB-4XX-Error-Rate"
+      MetricName: "HTTPCode_Target_4XX_Count"
+      Namespace: "AWS/ApplicationELB"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: "GreaterThanThreshold"
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !Ref ALBAppName
+      AlarmActions:
+        - !Ref AlarmSNSTopic
+      TreatMissingData: notBreaching
+
+
+  WAFAllowedRequestsAlarm:  
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: WAFAllowedRequestsAlarm
+      AlarmDescription: "Alarm when WAF allows requests beyond a threshold"
+      MetricName: AllowedRequests
+      Namespace: AWS/WAFV2
+      Dimensions: 
+        - Name: WebACL
+          Value: !Ref WAFWebACLName 
+        - Name: "Region"
+          Value: !Sub "${AWS::Region}"
+        - Name: "Rule"
+          Value: "ALL"
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: !Ref AllowedRequestAlarmThreshold 
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmSNSTopic  
+      
+
+  WAFBlockedRequestsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: WAFBlockedRequestsAlarm
+      MetricName: BlockedRequests
+      Namespace: AWS/WAFV2
+      Dimensions:
+        - Name: WebACL
+          Value: !Ref WAFWebACLName
+        - Name: "Region"
+          Value: !Sub "${AWS::Region}"
+        - Name: "Rule"
+          Value: "ALL"
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: !Ref BlockedRequestAlarmThreshold
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmSNSTopic 
+
+
+  # Alarm using the metric created by the filter
+  WAFLogBlockedRequestsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "WAFLogBlockedRequestsHigh"
+      AlarmDescription: "Alarm when WAF blocks too many requests according to the log generated"
+      Namespace: "Ecommerce/WAFV2"  
+      MetricName: "BlockedRequests"
+      Statistic: Sum
+      Period: 300  
+      EvaluationPeriods: 1
+      Threshold: !Ref BlockedRequestAlarmThreshold  
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref AlarmSNSTopic  
+      TreatMissingData: notBreaching
+
+
+Outputs:
+  CloudWatchDashboardName:
+    Description: Name of the CloudWatch Dashboard
+    Value: !Ref MidtermDashboard
+
+  AlarmSNSTopicArn:
+    Description: ARN of the SNS Topic for Alarm Notifications
+    Value: !Ref AlarmSNSTopic
