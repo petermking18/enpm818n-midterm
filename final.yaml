@@ -329,6 +329,7 @@ Resources:
       MasterUsername: !Sub "{{resolve:secretsmanager:EcommerceDBSecret:SecretString:username}}"
       MasterUserPassword: !Sub "{{resolve:secretsmanager:EcommerceDBSecret:SecretString:password}}"
       StorageEncrypted: true
+      MultiAZ: true
       VPCSecurityGroups:
         - !Ref DBSecurityGroup
       DBSubnetGroupName: !Ref DBSubnetGroup
